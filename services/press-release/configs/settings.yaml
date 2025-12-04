@@ -8,22 +8,25 @@ scrapers:
     start_urls:
       - "https://www.mof.gov.my/portal/en/news/press-release"
     selectors:
-      listing_links: "div.views-row a"
-      title: "h1.page-title"
-      date: "span.date"
-      body: "div.article-content"
+      listing_links: "a"
   - name: moh
     module: src.scrapers.moh
     start_urls:
       - "https://www.moh.gov.sg/newsroom/"
+    selectors:
+      listing_links: "a"
   - name: miti
     module: src.scrapers.miti
     start_urls:
       - "https://www.miti.gov.my/index.php/pages/view/5000"
+    selectors:
+      listing_links: "a"
   - name: bnm
     module: src.scrapers.bnm
     start_urls:
       - "https://www.bnm.gov.my/press-release-2025"
+    selectors:
+      listing_links: "a"
 
 user_agent: "gov-scraper-bot/1.0 (+https://axelyn.com)"
 concurrency: 4

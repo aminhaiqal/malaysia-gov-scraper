@@ -1,5 +1,5 @@
+from urllib.parse import urljoin
 from .base import BaseScraper
-from ..core.http import fetch
 from ..core.html import parse_html, extract_text
 from ..core.cleaners import clean_text
 
@@ -10,7 +10,17 @@ class MOFScraper(BaseScraper):
     def list_links(self, html: str):
         soup = parse_html(html)
         selector = self.selectors.get("listing_links")
-        links = [a.get("href") for a in soup.select(selector) if a.get("href")]
+        links = []
+
+        for a in soup.select(selector):
+            href = a.get("href")
+            if not href:
+                continue
+
+            full_url = urljoin(self.start_urls[0], href)
+            if "/portal/en/news/press-release" in full_url:
+                links.append(full_url)
+
         return links
 
     def parse_article(self, html: str):

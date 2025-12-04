@@ -17,7 +17,7 @@ def _ensure_publisher():
         import yaml
         cfg = yaml.safe_load(open('configs/settings.yaml'))
         q = cfg.get('qdrant', {})
-        PUBLISHER = QdrantPublisher(url=q.get('url'))
+        PUBLISHER = QdrantPublisher(url=q.get("url"), api_key=q.get("api_key"))
 
 def run_all(target: str = None):
     _ensure_publisher()
@@ -28,7 +28,8 @@ def run_all(target: str = None):
                 continue
 
             cls = meta['class']
-            scraper = cls(config=meta.get('config', {}))
+            scraper_config = {k: v for k, v in meta.items() if k != 'class'}
+            scraper = cls(config=scraper_config)
             for url in meta.get('start_urls', []):
                 futures.append(ex.submit(run_scraper, scraper, url))
 
@@ -46,6 +47,7 @@ def run_scraper(scraper, index_url: str):
         if link in seen:
             continue
         seen.add(link)
+        
         try:
             if link.lower().endswith(".pdf"):
                 text = extract_pdf_text_from_url(link)

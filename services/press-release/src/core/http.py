@@ -1,20 +1,29 @@
-import requests
-from time import sleep
-from random import uniform
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from typing import Optional
 
-
-DEFAULT_HEADERS = {"User-Agent": "gov-scraper-bot/1.0 (+https://example.com)"}
-
-def fetch(url: str, headers: Optional[dict] = None, timeout: int = 20) -> str:
-    h = DEFAULT_HEADERS.copy()
-    if headers:
-        h.update(headers)
-        for attempt in range(3):
+def fetch(url: str, timeout: int = 20000) -> Optional[str]:
+    """
+    Fetch a page using Playwright and return HTML content.
+    Ignores authorization errors or timeout errors, returns whatever is loaded.
+    """
+    html = None
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page()
+        try:
+            response = page.goto(url, timeout=timeout, wait_until="load")
+            if response:
+                # Even if status is 401, get page content
+                html = page.content()
+        except PlaywrightTimeoutError:
+            print(f"[Warning] Timeout loading {url}. Returning partial HTML if any.")
+            html = page.content()
+        except Exception as e:
+            print(f"[Warning] Error loading {url}: {e}")
             try:
-                r = requests.get(url, headers=h, timeout=timeout)
-                r.raise_for_status()
-                return r.text
+                html = page.content()
             except Exception:
-                sleep(1 + uniform(0, 1))
-                raise RuntimeError(f"Failed to fetch {url}")
+                html = None
+        finally:
+            browser.close()
+    return html

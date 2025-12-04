@@ -1,11 +1,11 @@
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
-from typing import Dict
+from typing import Dict, Optional
 
 
 class QdrantPublisher:
-    def __init__(self, url: str, collection_name: str = "gov_docs"):
-        self.client = QdrantClient(url=url)
+    def __init__(self, url: str, collection_name: str = "gov_docs", api_key: Optional[str] = None):
+        self.client = QdrantClient(url=url, api_key=api_key)
         self.collection = collection_name
         # Assume collection exists; caller manages schema
     

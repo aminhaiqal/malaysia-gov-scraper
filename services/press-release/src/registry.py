@@ -21,7 +21,8 @@ for s in CONFIG.get('scrapers', []):
         if cls:
             SCRAPERS[s['name']] = {
                 'class': cls,
-                'start_urls': s.get('start_urls', [])
+                'start_urls': s.get('start_urls', []),
+                'selectors': s.get('selectors', {})
             }
     except Exception as e:
         print('Failed to load', module_name, e)
