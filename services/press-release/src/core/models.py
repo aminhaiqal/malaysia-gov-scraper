@@ -1,13 +1,13 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional, Dict
 
-class PressRelease(BaseModel):
+
+class Document(BaseModel):
     id: str
-    title: str
-    ministry: str
-    date: str
-    source: str  # HTML or PDF
+    title: Optional[str]
+    ministry: Optional[str]
+    date: Optional[str]
+    source: Optional[str]
     url: str
     text: str
-    chunk_id: Optional[int] = None
-    metadata: Optional[dict] = None
+    metadata: Optional[Dict] = {}
