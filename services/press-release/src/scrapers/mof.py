@@ -6,7 +6,11 @@ from ..core.cleaners import clean_text
 
 class MOFScraper(BaseScraper):
     name = "mof"
-    
+
+    selectors = {
+        "listing_links": "a[href]",
+    }
+
     def list_links(self, html: str):
         soup = parse_html(html)
         selector = self.selectors.get("listing_links")
@@ -25,14 +29,20 @@ class MOFScraper(BaseScraper):
 
     def parse_article(self, html: str):
         soup = parse_html(html)
-        title = extract_text(soup, self.selectors.get("title", "h1"))
-        date = extract_text(soup, self.selectors.get("date", ".date"))
-        body = extract_text(soup, self.selectors.get("body", ".field--name-body"))
-        pdf_selector = self.selectors.get("pdf", "a[href$='.pdf']")
-        pdfs = [a.get("href") for a in soup.select(pdf_selector)]
+
+        title = soup.select_one("h1[itemprop='headline']").string
+        date = soup.select_one("time[itemprop='datePublished']").string
+        body_node = soup.select_one("div[itemprop='articleBody']")
+        body_html = str(body_node) if body_node else ""
+        category = soup.find(class_="category-name").string
+
+        pdf_selector = self.selectors.get("pdf")
+        pdfs = [urljoin(self.start_urls[0], a.get("href")) for a in soup.select(pdf_selector) if a.get("href")]
+
         return {
             "title": clean_text(title),
             "date": clean_text(date),
-            "text": clean_text(body),
+            "text": clean_text(body_html),
+            "category": clean_text(category),
             "pdfs": pdfs
         }
