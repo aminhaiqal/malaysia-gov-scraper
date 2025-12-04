@@ -8,6 +8,8 @@ class BaseScraper(ABC):
 
     def __init__(self, config: dict):
         self.config = config
+        self.start_urls = config.get("start_urls", [])
+        self.selectors = config.get("selectors", {})
 
     @abstractmethod
     def list_links(self, html: str) -> List[str]:

@@ -1,6 +1,6 @@
 from .base import BaseScraper
-from core.html import parse_html, extract_text
-from core.cleaners import clean_text
+from ..core.html import parse_html, extract_text
+from ..core.cleaners import clean_text
 
 
 class MITIScraper(BaseScraper):

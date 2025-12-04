@@ -2,7 +2,7 @@ from importlib import import_module
 import yaml
 
 
-CONFIG = yaml.safe_load(open('config/settings.yaml'))
+CONFIG = yaml.safe_load(open('configs/settings.yaml'))
 
 SCRAPERS = {}
 
