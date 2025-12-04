@@ -1,6 +1,6 @@
 qdrant:
   url: http://localhost:6333
-  api_key: ""
+  api_key: "qdrjYgmlPGcjGgybJmEPEJvFOoQ9hdkjDcP"
 
 scrapers:
   - name: mof
