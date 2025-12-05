@@ -64,7 +64,6 @@ def run_scraper(scraper, index_url: str, embed: bool = True) -> List[Article]:
             raw = fetch(link)
             article_data = scraper.get_article(raw, link)
 
-            print(article_data.to_payload())
             docs.append(article_data)
 
             if embed and len(docs) >= 20:
