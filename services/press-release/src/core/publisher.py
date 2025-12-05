@@ -4,7 +4,7 @@ from typing import Dict, Optional
 
 
 class QdrantPublisher:
-    def __init__(self, url: str, collection_name: str = "gov_docs", api_key: Optional[str] = None, vector_size: int = 1536):
+    def __init__(self, url: str, collection_name: str = "gov_docs", api_key: Optional[str] = None, vector_size: int = 1024):
         self.client = QdrantClient(url=url, api_key=api_key)
         self.collection = collection_name
         

@@ -1,4 +1,5 @@
 import concurrent.futures
+import uuid
 from .registry import SCRAPERS
 from .core.http import fetch
 from .core.models import Document
@@ -65,9 +66,11 @@ def run_scraper(scraper, index_url: str):
                 title = article_data.get("title")
                 date = article_data.get("date")
                 source = "HTML"
-
+            
+            base_id = stable_id(link)
+            
             doc = Document(
-                id=stable_id(link),
+                id=base_id,
                 title=title,
                 ministry=scraper.name.upper(),
                 date=date,
@@ -84,6 +87,7 @@ def run_scraper(scraper, index_url: str):
             )
 
             for idx, chunk in enumerate(chunk_text(text, size=512), start=1):
+                chunk_id = str(uuid.uuid4())
                 category = article_data.get("category") or ""
                 enriched_text = (
                     f"Title: {title}\n"
@@ -94,18 +98,25 @@ def run_scraper(scraper, index_url: str):
                 )
 
                 embedding = embed_text(enriched_text)
+                embedding_vector = embedding
+                
+                if isinstance(embedding[0], list):
+                    embedding_vector = embedding[0]
 
                 chunk_doc = doc.model_copy(update={
-                    "id": f"{doc.id}_chunk_{idx}",
-                    "text": chunk
+                    "id": chunk_id,
+                    "text": chunk,
+                    "metadata": {
+                        **doc.metadata,
+                        "chunk_index": idx
+                    }
                 })
 
-                # Publish to Qdrant
                 PUBLISHER.publish(
                     doc_id=chunk_doc.id,
                     text=chunk,
-                    metadata=chunk_doc.dict(),
-                    embedding=embedding
+                    metadata=chunk_doc.model_dump(),
+                    embedding=embedding_vector
                 )
 
         except Exception as e:
