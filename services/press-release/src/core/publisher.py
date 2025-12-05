@@ -23,10 +23,10 @@ class QdrantPublisher:
             collection_name=self.collection,
             points=[
                 models.PointStruct(
-                    id=str(hash(doc.url)),
+                    id=idx,
                     vector=embed_text(doc.cleaned_text or doc.text),
                     payload=doc.to_payload(),
                 )
-                for doc in docs
+                for idx, doc in enumerate(docs)
             ]
         )

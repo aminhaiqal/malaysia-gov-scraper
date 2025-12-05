@@ -30,7 +30,7 @@ def run_all(target: str = None):
             scraper_config = {k: v for k, v in meta.items() if k != 'class'}
             scraper = cls(config=scraper_config)
             for url in meta.get('start_urls', []):
-                futures.append(ex.submit(run_scraper, scraper, url))
+                futures.append(ex.submit(run_scraper, scraper, url, True))
 
         for f in concurrent.futures.as_completed(futures):
             try:
@@ -67,14 +67,14 @@ def run_scraper(scraper, index_url: str, embed: bool = True) -> List[Article]:
             docs.append(article_data)
 
             if embed and len(docs) >= 20:
-                PUBLISHER.publish([doc.to_payload() for doc in docs])
+                PUBLISHER.publish(docs)
                 docs.clear()
 
         except Exception as e:
             print("Article error:", link, e)
 
     if embed and docs:
-        PUBLISHER.publish([doc.to_payload() for doc in docs])
+        PUBLISHER.publish(docs)
         docs.clear()
 
     return docs

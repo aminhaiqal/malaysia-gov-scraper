@@ -14,22 +14,11 @@ COLLECTION_NAME = "gov_docs"
 client = QdrantClient(url=QDRANT_URL, api_key=API_KEY)
 info = client.get_collection(collection_name=COLLECTION_NAME)
 
-# Scroll all points
-scroll_result = client.scroll(
-    collection_name=COLLECTION_NAME,
-    limit=100  # number of points per batch
-)
-
-print(f"Retrieved {len(scroll_result)} points in first batch")
-print(scroll_result)
-
 hits = client.query_points(
     collection_name=COLLECTION_NAME,
-    query=embed_text("Ron97 and Ron95 price update"),
+    query=embed_text("Third quater economy"),
     limit=3,
 ).points
-
-print(hits)
 
 for hit in hits:
     print(hit.payload, "score:", hit.score)
