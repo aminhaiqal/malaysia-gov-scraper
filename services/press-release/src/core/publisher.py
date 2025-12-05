@@ -1,6 +1,7 @@
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct, VectorParams, Distance
 from typing import Dict, Optional
+import numpy as np
 
 
 class QdrantPublisher:
@@ -16,6 +17,28 @@ class QdrantPublisher:
             )
             print(f"Created missing Qdrant collection '{self.collection}'")
     
+    @staticmethod
+    def normalize_vector(vec):
+        """Normalize embedding for cosine similarity"""
+        arr = np.array(vec).flatten()
+        norm_val = np.linalg.norm(arr)
+        if norm_val > 0:
+            return (arr / norm_val).tolist()
+        return arr.tolist()
+    
     def publish(self, doc_id: str, text: str, metadata: Dict, embedding: list):
-        point = PointStruct(id=doc_id, vector=embedding, payload={**metadata, "text": text})
+        embedding_vector = self.normalize_vector(embedding)
+
+        point = PointStruct(
+            id=doc_id, 
+            vector=embedding_vector, 
+            payload={**metadata, "text": text}
+        )
         self.client.upsert(collection_name=self.collection, points=[point])
+
+    def trigger_indexing(self):
+        """Force collection to index new vectors (simple method)"""
+        self.client.update_collection(
+            collection_name=self.collection,
+            optimizers_config={"indexing_threshold": 1}
+        )

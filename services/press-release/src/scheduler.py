@@ -11,8 +11,8 @@ from .embeddings.chunking import chunk_text
 
 PUBLISHER = None
 
-
 def _ensure_publisher():
+    """Initialize global publisher if not already done"""
     global PUBLISHER
     if PUBLISHER is None:
         import yaml
@@ -21,6 +21,7 @@ def _ensure_publisher():
         PUBLISHER = QdrantPublisher(url=q.get("url"), api_key=q.get("api_key"))
 
 def run_all(target: str = None):
+    """Run all scrapers concurrently"""
     _ensure_publisher()
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
         futures = []
@@ -38,37 +39,50 @@ def run_all(target: str = None):
             try:
                 f.result()
             except Exception as e:
-                print('error', e)
+                print('Scraper error:', e)
+    
+    if PUBLISHER:
+        PUBLISHER.trigger_indexing()
 
 def run_scraper(scraper, index_url: str):
+    """Run a single scraper and publish chunks to Qdrant"""
     html = fetch(index_url)
     links = scraper.list_links(html)
     seen = set()
+
     for link in links:
         if link in seen:
             continue
         seen.add(link)
-        
+
+        # Skip index/anchor links
         if (link.endswith("#")
             or link.rstrip("/").endswith("press-release")
             or link.rstrip("/").endswith("siaran-media")):
             continue
-        
+
         try:
+            # Extract text
             if link.lower().endswith(".pdf"):
                 text = extract_pdf_text_from_url(link)
                 title, date = None, None
                 source = "PDF"
+                category = ""
             else:
                 raw = fetch(link)
                 article_data = scraper.parse_article(raw)
-                text = article_data.get("text")
-                title = article_data.get("title")
+                text = article_data.get("text", "")
+                title = article_data.get("title", "")
                 date = article_data.get("date")
+                category = article_data.get("category", "")
                 source = "HTML"
-            
+
+            if not text or len(text.strip()) == 0:
+                continue  # skip empty articles
+
             base_id = stable_id(link)
-            
+
+            # Create Document object
             doc = Document(
                 id=base_id,
                 title=title,
@@ -80,15 +94,17 @@ def run_scraper(scraper, index_url: str):
                 metadata={
                     "title": title,
                     "date": date,
-                    "category": article_data.get("category") or "",
-                    "pdfs": article_data.get("pdfs") or [],
-                    "text": text,
+                    "category": category,
+                    "pdfs": article_data.get("pdfs", []) if source == "HTML" else [],
                 },
             )
 
+            # Split text into chunks
             for idx, chunk in enumerate(chunk_text(text, size=512), start=1):
+                if not chunk.strip():
+                    continue  # skip empty chunks
+
                 chunk_id = str(uuid.uuid4())
-                category = article_data.get("category") or ""
                 enriched_text = (
                     f"Title: {title}\n"
                     f"Ministry: {scraper.name.upper()}\n"
@@ -97,27 +113,18 @@ def run_scraper(scraper, index_url: str):
                     f"Text: {chunk}"
                 )
 
+                # Embed and normalize
                 embedding = embed_text(enriched_text)
-                embedding_vector = embedding
-                
                 if isinstance(embedding[0], list):
-                    embedding_vector = embedding[0]
+                    embedding = embedding[0]  # flatten if nested
 
-                chunk_doc = doc.model_copy(update={
-                    "id": chunk_id,
-                    "text": chunk,
-                    "metadata": {
-                        **doc.metadata,
-                        "chunk_index": idx
-                    }
-                })
-
+                # Publish chunk to Qdrant
                 PUBLISHER.publish(
-                    doc_id=chunk_doc.id,
+                    doc_id=chunk_id,
                     text=chunk,
-                    metadata=chunk_doc.model_dump(),
-                    embedding=embedding_vector
+                    metadata={**doc.metadata, "chunk_index": idx},
+                    embedding=embedding
                 )
 
         except Exception as e:
-            print("article error", link, e)
+            print("Article error:", link, e)
