@@ -5,6 +5,8 @@ from .core.models import Document
 from .core.publisher import QdrantPublisher
 from .core.pdf import extract_pdf_text_from_url
 from .core.utils import stable_id
+from .embeddings.embedder import embed_text
+from .embeddings.chunking import chunk_text
 
 PUBLISHER = None
 
@@ -81,9 +83,30 @@ def run_scraper(scraper, index_url: str):
                 },
             )
 
-            # Placeholder embedding
-            embedding = [0.0] * 1536
-            PUBLISHER.publish(doc.id, doc.text, doc.dict(), embedding)
+            for idx, chunk in enumerate(chunk_text(text, size=512), start=1):
+                category = article_data.get("category") or ""
+                enriched_text = (
+                    f"Title: {title}\n"
+                    f"Ministry: {scraper.name.upper()}\n"
+                    f"Date: {date}\n"
+                    f"Category: {category}\n"
+                    f"Text: {chunk}"
+                )
+
+                embedding = embed_text(enriched_text)
+
+                chunk_doc = doc.model_copy(update={
+                    "id": f"{doc.id}_chunk_{idx}",
+                    "text": chunk
+                })
+
+                # Publish to Qdrant
+                PUBLISHER.publish(
+                    doc_id=chunk_doc.id,
+                    text=chunk,
+                    metadata=chunk_doc.dict(),
+                    embedding=embedding
+                )
 
         except Exception as e:
             print("article error", link, e)
