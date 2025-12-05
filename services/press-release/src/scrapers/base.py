@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
+from ..core.models import Article
 
 
 class BaseScraper(ABC):
@@ -16,5 +17,5 @@ class BaseScraper(ABC):
         """Return article links found in an index page."""
 
     @abstractmethod
-    def parse_article(self, html: str) -> dict:
+    def parse_article(self, html: str) -> List[Article]:
         """Return parsed data: title, date, text, pdfs etc."""

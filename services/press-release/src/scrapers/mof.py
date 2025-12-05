@@ -1,6 +1,7 @@
 from urllib.parse import urljoin
 from .base import BaseScraper
-from ..core.html import parse_html, extract_text
+from ..core.html import parse_html
+from ..core.models import Article
 from ..core.cleaners import clean_text
 
 
@@ -27,7 +28,7 @@ class MOFScraper(BaseScraper):
 
         return links
 
-    def parse_article(self, html: str):
+    def get_article(self, html: str) -> Article:
         soup = parse_html(html)
 
         title = soup.select_one("h1[itemprop='headline']").string

@@ -1,44 +1,32 @@
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import PointStruct, VectorParams, Distance
-from typing import Dict, Optional
-import numpy as np
+from qdrant_client import QdrantClient, models
+from typing import Optional
+from models import Article
+from src.embeddings.embedder import embed_text, get_embedding_dimension
 
 
 class QdrantPublisher:
-    def __init__(self, url: str, collection_name: str = "gov_docs", api_key: Optional[str] = None, vector_size: int = 1024):
+    def __init__(self, url: str, collection_name: str = "gov_docs", api_key: Optional[str] = None):
         self.client = QdrantClient(url=url, api_key=api_key)
         self.collection = collection_name
         
+        dimm = get_embedding_dimension()
         existing = [c.name for c in self.client.get_collections().collections]
         if self.collection not in existing:
             self.client.create_collection(
                 collection_name=self.collection,
-                vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+                vectors_config=models.VectorParams(size=dimm, distance=models.Distance.COSINE)
             )
             print(f"Created missing Qdrant collection '{self.collection}'")
     
-    @staticmethod
-    def normalize_vector(vec):
-        """Normalize embedding for cosine similarity"""
-        arr = np.array(vec).flatten()
-        norm_val = np.linalg.norm(arr)
-        if norm_val > 0:
-            return (arr / norm_val).tolist()
-        return arr.tolist()
-    
-    def publish(self, doc_id: str, text: str, metadata: Dict, embedding: list):
-        embedding_vector = self.normalize_vector(embedding)
-
-        point = PointStruct(
-            id=doc_id, 
-            vector=embedding_vector, 
-            payload={**metadata, "text": text}
-        )
-        self.client.upsert(collection_name=self.collection, points=[point])
-
-    def trigger_indexing(self):
-        """Force collection to index new vectors (simple method)"""
-        self.client.update_collection(
+    def publish(self, docs: list[Article]):
+        self.client.upload_points(
             collection_name=self.collection,
-            optimizers_config={"indexing_threshold": 1}
+            points=[
+                models.PointStruct(
+                    id=str(hash(doc.url)),
+                    vector=embed_text(doc.cleaned_text or doc.text),
+                    payload=doc.to_payload(),
+                )
+                for doc in docs
+            ]
         )
