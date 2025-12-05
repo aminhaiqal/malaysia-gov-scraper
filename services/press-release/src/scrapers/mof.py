@@ -28,26 +28,46 @@ class MOFScraper(BaseScraper):
 
         return links
 
-    def get_article(self, html: str) -> Article:
+    def get_article(self, html: str, url: str) -> Article:
+        if not url:
+            return None
+        
         soup = parse_html(html)
 
-        title = soup.select_one("h1[itemprop='headline']").string
-        date = soup.select_one("time[itemprop='datePublished']").string
+        title = soup.select_one("h1[itemprop='headline']")
+        title = clean_text(title.string if title else "")
+
+        date = soup.select_one("time[itemprop='datePublished']")
+        date = clean_text(date.string if date else "")
+
         body_node = soup.select_one("div[itemprop='articleBody']")
-        body_html = str(body_node) if body_node else ""
-        category = soup.find(class_="category-name").string
+        raw_body_html = str(body_node) if body_node else ""
+        cleaned_body = clean_text(raw_body_html)
 
-        article = soup.find("div", class_="article-details")
-        pdfs = [
-            urljoin(self.start_urls[0], a["href"])
-            for a in article.find_all("a", href=True)
-            if a["href"].lower().endswith(".pdf")
-        ]
+        category_node = soup.find(class_="category-name")
+        category = clean_text(category_node.string if category_node else "")
 
-        return {
-            "title": clean_text(title),
-            "date": clean_text(date),
-            "text": clean_text(body_html),
-            "category": clean_text(category),
-            "pdfs": pdfs
-        }
+        # Collect PDF attachments
+        article_details = soup.find("div", class_="article-details")
+        pdfs = []
+        if article_details:
+            pdfs = [
+                urljoin(self.start_urls[0], a["href"])
+                for a in article_details.find_all("a", href=True)
+                if a["href"].lower().endswith(".pdf")
+            ]
+
+        return Article(
+            id=str(hash(url)),
+            title=title,
+            ministry=self.name.upper(),
+            date=date,
+            source="HTML",
+            url=url,
+            text=raw_body_html,
+            cleaned_text=cleaned_body,
+            metadata={
+                "category": category,
+                "pdfs": pdfs
+            },
+        )

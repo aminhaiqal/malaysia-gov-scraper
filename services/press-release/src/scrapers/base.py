@@ -17,5 +17,5 @@ class BaseScraper(ABC):
         """Return article links found in an index page."""
 
     @abstractmethod
-    def parse_article(self, html: str) -> List[Article]:
+    def get_article(self, html: str) -> List[Article]:
         """Return parsed data: title, date, text, pdfs etc."""

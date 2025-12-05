@@ -1,9 +1,10 @@
 import concurrent.futures
 from .registry import SCRAPERS
 from .core.http import fetch
-from .core.models import Article
 from .core.publisher import QdrantPublisher
-from .core.pdf import extract_pdf_text_from_url
+from .core.models import Article
+from typing import List
+
 
 PUBLISHER = None
 
@@ -36,16 +37,12 @@ def run_all(target: str = None):
                 f.result()
             except Exception as e:
                 print('Scraper error:', e)
-    
-    if PUBLISHER:
-        PUBLISHER.trigger_indexing()
 
-def run_scraper(scraper, index_url: str):
+def run_scraper(scraper, index_url: str, embed: bool = True) -> List[Article]:
     """Run a single scraper and publish chunks to Qdrant"""
     html = fetch(index_url)
     links = scraper.list_links(html)
     seen = set()
-
     docs = []
 
     for link in links:
@@ -62,46 +59,23 @@ def run_scraper(scraper, index_url: str):
         try:
             # Extract text
             if link.lower().endswith(".pdf"):
-                text = extract_pdf_text_from_url(link)
-                title, date = None, None
-                source = "PDF"
-                category = ""
-            else:
-                raw = fetch(link)
-                article_data = scraper.parse_article(raw)
-                text = article_data.get("text", "")
-                title = article_data.get("title", "")
-                date = article_data.get("date")
-                category = article_data.get("category", "")
-                source = "HTML"
+                continue
 
-            if not text or len(text.strip()) == 0:
-                continue  # skip empty articles
+            raw = fetch(link)
+            article_data = scraper.get_article(raw, link)
 
-            doc = Article(
-                title=title,
-                ministry=scraper.name.upper(),
-                date=date,
-                source=source,
-                url=link,
-                text=text,
-                metadata={
-                    "title": title,
-                    "date": date,
-                    "category": category,
-                    "pdfs": article_data.get("pdfs", []) if source == "HTML" else [],
-                },
-            )
+            print(article_data.to_payload())
+            docs.append(article_data)
 
-            docs.append(doc)
-
-            if len(docs) >= 20:
-                PUBLISHER.publish(docs)
+            if embed and len(docs) >= 20:
+                PUBLISHER.publish([doc.to_payload() for doc in docs])
                 docs.clear()
 
         except Exception as e:
             print("Article error:", link, e)
 
-    if docs:
-        PUBLISHER.publish(docs)
+    if embed and docs:
+        PUBLISHER.publish([doc.to_payload() for doc in docs])
         docs.clear()
+
+    return docs

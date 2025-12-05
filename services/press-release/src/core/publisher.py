@@ -1,6 +1,6 @@
 from qdrant_client import QdrantClient, models
 from typing import Optional
-from models import Article
+from .models import Article
 from src.embeddings.embedder import embed_text, get_embedding_dimension
 
 
