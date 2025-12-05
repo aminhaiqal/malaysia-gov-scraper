@@ -36,8 +36,12 @@ class MOFScraper(BaseScraper):
         body_html = str(body_node) if body_node else ""
         category = soup.find(class_="category-name").string
 
-        pdf_selector = self.selectors.get("pdf")
-        pdfs = [urljoin(self.start_urls[0], a.get("href")) for a in soup.select(pdf_selector) if a.get("href")]
+        article = soup.find("div", class_="article-details")
+        pdfs = [
+            urljoin(self.start_urls[0], a["href"])
+            for a in article.find_all("a", href=True)
+            if a["href"].lower().endswith(".pdf")
+        ]
 
         return {
             "title": clean_text(title),

@@ -1,12 +1,10 @@
 import concurrent.futures
 from .registry import SCRAPERS
 from .core.http import fetch
-from .core.cleaners import clean_text
 from .core.models import Document
 from .core.publisher import QdrantPublisher
 from .core.pdf import extract_pdf_text_from_url
-import uuid
-
+from .core.utils import stable_id
 
 PUBLISHER = None
 
@@ -48,6 +46,11 @@ def run_scraper(scraper, index_url: str):
             continue
         seen.add(link)
         
+        if (link.endswith("#")
+            or link.rstrip("/").endswith("press-release")
+            or link.rstrip("/").endswith("siaran-media")):
+            continue
+        
         try:
             if link.lower().endswith(".pdf"):
                 text = extract_pdf_text_from_url(link)
@@ -56,21 +59,26 @@ def run_scraper(scraper, index_url: str):
             else:
                 raw = fetch(link)
                 article_data = scraper.parse_article(raw)
-                text = article_data["text"]
+                text = article_data.get("text")
                 title = article_data.get("title")
                 date = article_data.get("date")
                 source = "HTML"
 
-            text = clean_text(text)
             doc = Document(
-                id=str(uuid.uuid4()),
+                id=stable_id(link),
                 title=title,
                 ministry=scraper.name.upper(),
                 date=date,
                 source=source,
                 url=link,
                 text=text,
-                metadata={},
+                metadata={
+                    "title": title,
+                    "date": date,
+                    "category": article_data.get("category") or "",
+                    "pdfs": article_data.get("pdfs") or [],
+                    "text": text,
+                },
             )
 
             # Placeholder embedding
