@@ -1,5 +1,7 @@
 import requests
-from typing import Optional, List
+from typing import Optional
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+
 
 def fetch(url: str, timeout: int = 20) -> Optional[str]:
     """
@@ -26,23 +28,39 @@ def fetch(url: str, timeout: int = 20) -> Optional[str]:
         print(f"[Error] Failed to fetch {url}: {e}")
         return None
     
-def expand_paginated_urls(meta: dict) -> List[str]:
-    """Return list of URLs to scrape including pagination if configured"""
-    urls = list(meta.get("start_urls", []))
+def expand_paginated_urls(meta):
+    start_urls = meta.get("start_urls", [])
+    pagination = meta.get("pagination")
 
-    pag = meta.get("pagination")
-    if not pag:
-        return urls
-    
-    ptype = pag.get("type")
-    if ptype == "query_param":
-        base = urls[0]
-        param = pag.get("param")
-        start = pag.get("start", 0)
-        stop = pag.get("stop", 0)
-        step = pag.get("step", 1)
+    urls = []
 
-        for i in range(start, stop, step):
-            urls.append(f"{base}?{param}={i}")
+    for base_url in start_urls:
+        urls.append(base_url)
+
+        if pagination and pagination.get("type") == "query_param":
+            param = pagination.get("param")
+            start = pagination.get("start")
+            stop = pagination.get("stop")
+            step = pagination.get("step", 1)
+
+            parsed = urlparse(base_url)
+            qs = parse_qs(parsed.query)
+            existing_page = int(qs.get(param, [None])[0]) if param in qs else None
+
+            for i in range(start, stop + 1, step):
+                if existing_page is not None and i == existing_page:
+                    continue
+
+                qs[param] = [str(i)]
+                new_query = urlencode(qs, doseq=True)
+                new_url = urlunparse((
+                    parsed.scheme,
+                    parsed.netloc,
+                    parsed.path,
+                    parsed.params,
+                    new_query,
+                    parsed.fragment
+                ))
+                urls.append(new_url)
 
     return urls

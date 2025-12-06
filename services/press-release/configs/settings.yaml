@@ -20,7 +20,7 @@ scrapers:
       type: query_param
       param: "start"
       start: 5
-      stop: 60
+      stop: 55
       step: 5
     selectors:
       listing_links: "a"
@@ -28,10 +28,18 @@ scrapers:
 
   - name: moh
     module: src.scrapers.moh
+    class: MOHScraper
     start_urls:
-      - "https://www.moh.gov.sg/newsroom/"
+      - "https://www.moh.gov.sg/newsroom/?filters=%5B%7B%22id%22%3A%22year%22%2C%22items%22%3A%5B%7B%22id%22%3A%222025%22%7D%5D%7D%5D&page=1"
+    pagination:
+      type: query_param
+      param: "page"
+      start: 1
+      stop: 41
+      step: 1
     selectors:
       listing_links: "a"
+
   - name: miti
     module: src.scrapers.miti
     start_urls:
