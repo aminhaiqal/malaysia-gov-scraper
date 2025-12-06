@@ -4,6 +4,7 @@ from .core.http import expand_paginated_urls, fetch
 from .core.publisher import QdrantPublisher
 from .core.models import Article
 from .core.storage import DocumentStore
+from .core.pdf_processor import PDFProcessor
 from typing import List
 
 
@@ -14,8 +15,10 @@ def _ensure_publisher():
     """Initialize global publisher if not already done"""
     global PUBLISHER
     global STORE
+    global PROCESSOR
 
     STORE = DocumentStore()
+    PROCESSOR = PDFProcessor()
 
     if PUBLISHER is None:
         import yaml
@@ -48,12 +51,36 @@ def run_all(target: str = None):
             except Exception as e:
                 print('Scraper error:', e)
 
-def run_scraper(scraper, index_url: str, embed: bool = True) -> List[Article]:
+def run_scraper(scraper, index_url: str, embed: bool = True, save: bool = False) -> List[Article]:
     """Run a single scraper and publish chunks to Qdrant"""
     html = fetch(index_url)
     links = scraper.list_links(html)
     seen = set()
-    docs = []
+    buffer = []
+    published_count = 0
+    stored_count = 0
+
+    def process_batch(batch):
+        nonlocal published_count, stored_count
+
+        if not batch:
+            return
+
+        if save:
+            # Store into DB first then store_articles returns only unique/new ones
+            new_docs = STORE.save_articles(batch)
+            stored_count += len(new_docs)
+
+            if embed and new_docs:
+                PUBLISHER.publish(new_docs)
+                published_count += len(new_docs)
+        else:
+            # No DB filtering then publish all scraped docs
+            if embed:
+                PUBLISHER.publish(batch)
+                published_count += len(batch)
+
+        batch.clear()
 
     for link in links:
         if link in seen:
@@ -67,28 +94,22 @@ def run_scraper(scraper, index_url: str, embed: bool = True) -> List[Article]:
             continue
 
         try:
-            # Extract text
             if link.lower().endswith(".pdf"):
-                pass
+                article_data = PROCESSOR.process_pdf_from_url(link)
+                
             else:
                 raw = fetch(link)
                 article_data = scraper.get_article(raw, link)
 
-                docs.append(article_data)
+            buffer.append(article_data)
 
-            if len(docs) >= 20:
-                new_docs = STORE.save_articles(docs)
-                if embed and new_docs:
-                    PUBLISHER.publish(docs)
-                docs.clear()
+            if len(buffer) >= 20:
+                process_batch(buffer)
 
         except Exception as e:
             print("Article error:", link, e)
 
-    if docs:
-        new_docs = STORE.save_articles(docs)
-        if embed and new_docs:
-            PUBLISHER.publish(new_docs)
-        docs.clear()
+    process_batch(buffer)
 
-    return docs
+    print(f"[Scraper] Stored: {stored_count}, Published: {published_count}")
+    return buffer

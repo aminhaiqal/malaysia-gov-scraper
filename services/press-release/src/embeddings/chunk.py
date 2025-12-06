@@ -3,8 +3,8 @@ from .embedder import embed_text
 
 def chunk_text(
     text: str,
-    chunk_size: int = 500,
-    overlap: int = 50
+    chunk_size: int = 1200,
+    overlap: int = 200
 ) -> List[str]:
     """
     Split text into overlapping chunks.
@@ -32,8 +32,8 @@ def chunk_text(
 
 def embed_chunks(
     text: str,
-    chunk_size: int = 500,
-    overlap: int = 50
+    chunk_size: int = 1200,
+    overlap: int = 200
 ) -> List[Dict]:
     """
     Split text into chunks and generate embeddings for each chunk.

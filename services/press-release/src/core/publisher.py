@@ -1,3 +1,4 @@
+import uuid
 from qdrant_client import QdrantClient, models
 from typing import Optional
 from .models import Article
@@ -19,14 +20,28 @@ class QdrantPublisher:
             print(f"Created missing Qdrant collection '{self.collection}'")
     
     def publish(self, docs: list[Article]):
+        points = []
+
+        for doc in docs:
+            embedded = embed_text(doc.cleaned_text or doc.text)
+
+            if isinstance(embedded, dict):
+                embedded = [embedded]
+
+            for chunk in embedded:
+                points.append(
+                    models.PointStruct(
+                        id=str(uuid.uuid4()),
+                        vector=chunk["embedding"],
+                        payload={
+                            **doc.to_payload(),
+                            "chunk_text": chunk["text"]
+                        }
+                    )
+                )
+
+
         self.client.upload_points(
             collection_name=self.collection,
-            points=[
-                models.PointStruct(
-                    id=idx,
-                    vector=embed_text(doc.cleaned_text or doc.text),
-                    payload=doc.to_payload(),
-                )
-                for idx, doc in enumerate(docs)
-            ]
+            points=points
         )

@@ -7,7 +7,7 @@ from ..core.cleaners import clean_text
 class MITIScraper(BaseScraper):
     name = "miti"
 
-def list_links(self, html: str):
+    def list_links(self, html: str):
         soup = parse_html(html)
         selector = "a[href]"
         links = []
@@ -24,5 +24,5 @@ def list_links(self, html: str):
         return links
 
 
-def get_article(self, html: str, url: str):
-    pass
+    def get_article(self, html: str, url: str):
+        pass

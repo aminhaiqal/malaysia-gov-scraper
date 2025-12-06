@@ -42,14 +42,10 @@ class PDFProcessor:
 
             text = self.extract_text(tmp_file.name)
 
-        embedded_chunks = embed_chunks(text) if text else []
-
         return Article(
             id=str(hash(url)),
             source="PDF",
             url=url,
             text=text,
-            cleaned_text=text,
             pdfs=[url],
-            metadata={"chunks": embedded_chunks}
         )
