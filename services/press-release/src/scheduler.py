@@ -1,6 +1,6 @@
 import concurrent.futures
 from .registry import SCRAPERS
-from .core.http import fetch
+from .core.http import expand_paginated_urls, fetch
 from .core.publisher import QdrantPublisher
 from .core.models import Article
 from typing import List
@@ -29,7 +29,10 @@ def run_all(target: str = None):
             cls = meta['class']
             scraper_config = {k: v for k, v in meta.items() if k != 'class'}
             scraper = cls(config=scraper_config)
-            for url in meta.get('start_urls', []):
+
+            urls_to_run = expand_paginated_urls(meta)
+
+            for url in urls_to_run:
                 futures.append(ex.submit(run_scraper, scraper, url, True))
 
         for f in concurrent.futures.as_completed(futures):

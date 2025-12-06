@@ -9,6 +9,19 @@ scrapers:
       - "https://www.mof.gov.my/portal/en/news/press-release"
     selectors:
       listing_links: "a"
+  - name: mof-archive
+    module: src.scrapers.mof
+    start_urls:
+      - "https://www.mof.gov.my/portal/en/archive3/press-release"
+    pagination:
+      type: query_param
+      param: "start"
+      start: 5
+      stop: 60
+      step: 5
+    selectors:
+      listing_links: "a"
+
   - name: moh
     module: src.scrapers.moh
     start_urls:

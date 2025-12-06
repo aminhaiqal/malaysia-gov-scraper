@@ -1,5 +1,5 @@
 import requests
-from typing import Optional
+from typing import Optional, List
 
 def fetch(url: str, timeout: int = 20) -> Optional[str]:
     """
@@ -25,3 +25,24 @@ def fetch(url: str, timeout: int = 20) -> Optional[str]:
     except Exception as e:
         print(f"[Error] Failed to fetch {url}: {e}")
         return None
+    
+def expand_paginated_urls(meta: dict) -> List[str]:
+    """Return list of URLs to scrape including pagination if configured"""
+    urls = list(meta.get("start_urls", []))
+
+    pag = meta.get("pagination")
+    if not pag:
+        return urls
+    
+    ptype = pag.get("type")
+    if ptype == "query_param":
+        base = urls[0]
+        param = pag.get("param")
+        start = pag.get("start", 0)
+        stop = pag.get("stop", 0)
+        step = pag.get("step", 1)
+
+        for i in range(start, stop, step):
+            urls.append(f"{base}?{param}={i}")
+
+    return urls
