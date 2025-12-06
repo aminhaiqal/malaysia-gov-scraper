@@ -16,7 +16,7 @@ info = client.get_collection(collection_name=COLLECTION_NAME)
 
 hits = client.query_points(
     collection_name=COLLECTION_NAME,
-    query=embed_text("Third quater economy"),
+    query=embed_text("Raise of Ron95 and Ron97"),
     limit=3,
 ).points
 

@@ -66,8 +66,7 @@ class MOFScraper(BaseScraper):
             url=url,
             text=raw_body_html,
             cleaned_text=cleaned_body,
-            metadata={
-                "category": category,
-                "pdfs": pdfs
-            },
+            category=category,
+            pdfs=pdfs,
+            metadata={}
         )

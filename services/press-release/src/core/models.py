@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 
 class Article(BaseModel):
@@ -11,6 +11,8 @@ class Article(BaseModel):
     url: str
     text: str
     cleaned_text: Optional[str] = None
+    category: Optional[str] = None
+    pdfs: Optional[List[str]] = []
     metadata: Optional[Dict] = {}
 
     def to_payload(self) -> Dict:
@@ -22,5 +24,7 @@ class Article(BaseModel):
             "url": self.url,
             "text": self.text,
             "cleaned_text": self.cleaned_text,
+            "category": self.category,
+            "pdfs": self.pdfs,
             "metadata": self.metadata,
         }

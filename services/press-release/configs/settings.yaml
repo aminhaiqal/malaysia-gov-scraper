@@ -5,12 +5,15 @@ qdrant:
 scrapers:
   - name: mof
     module: src.scrapers.mof
+    class: MOFScraper
     start_urls:
       - "https://www.mof.gov.my/portal/en/news/press-release"
     selectors:
       listing_links: "a"
+
   - name: mof-archive
     module: src.scrapers.mof
+    class: MOFScraper
     start_urls:
       - "https://www.mof.gov.my/portal/en/archive3/press-release"
     pagination:
@@ -21,6 +24,7 @@ scrapers:
       step: 5
     selectors:
       listing_links: "a"
+
 
   - name: moh
     module: src.scrapers.moh
