@@ -8,13 +8,10 @@ from ..core.cleaners import clean_text
 class MOFScraper(BaseScraper):
     name = "mof"
 
-    selectors = {
-        "listing_links": "a[href]",
-    }
 
     def list_links(self, html: str):
         soup = parse_html(html)
-        selector = self.selectors.get("listing_links")
+        selector = "a[href]"
         links = []
 
         for a in soup.select(selector):

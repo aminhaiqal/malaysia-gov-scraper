@@ -4,10 +4,10 @@ from typing import Optional, Dict, List
 
 class Article(BaseModel):
     id: str
-    title: Optional[str]
-    ministry: Optional[str]
-    date: Optional[str]
-    source: Optional[str]
+    title: Optional[str] = None
+    ministry: Optional[str] = None
+    date: Optional[str] = None
+    source: Optional[str] = None
     url: str
     text: str
     cleaned_text: Optional[str] = None

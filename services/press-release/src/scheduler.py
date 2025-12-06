@@ -63,18 +63,18 @@ def run_scraper(scraper, index_url: str, embed: bool = True) -> List[Article]:
         # Skip index/anchor links
         if (link.endswith("#")
             or link.rstrip("/").endswith("press-release")
-            or link.rstrip("/").endswith("siaran-media")):
+            or link.rstrip("/").endswith("Media%20Release")):
             continue
 
         try:
             # Extract text
             if link.lower().endswith(".pdf"):
-                continue
+                pass
+            else:
+                raw = fetch(link)
+                article_data = scraper.get_article(raw, link)
 
-            raw = fetch(link)
-            article_data = scraper.get_article(raw, link)
-
-            docs.append(article_data)
+                docs.append(article_data)
 
             if len(docs) >= 20:
                 new_docs = STORE.save_articles(docs)
