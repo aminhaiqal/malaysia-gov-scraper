@@ -4,7 +4,7 @@ from src.embeddings.embedder import embed_text
 QDRANT_URL = "http://localhost:6333"
 API_KEY = "qdrjYgmlPGcjGgybJmEPEJvFOoQ9hdkjDcP"
 COLLECTION_NAME = "gov_docs"
-QUERY_TEXT = "eksport semikonduktor mewakili lebih kurang 30% dari jumlah eksport Malaysia"
+QUERY_TEXT = "Transformasi Semikonduktor"
 TOP_K = 3
 
 client = QdrantClient(url=QDRANT_URL, api_key=API_KEY)
