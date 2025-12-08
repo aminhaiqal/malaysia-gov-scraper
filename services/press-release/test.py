@@ -4,7 +4,7 @@ from src.embeddings.embedder import embed_text
 QDRANT_URL = "http://localhost:6333"
 API_KEY = "qdrjYgmlPGcjGgybJmEPEJvFOoQ9hdkjDcP"
 COLLECTION_NAME = "gov_docs"
-QUERY_TEXT = "Masjid Kariah Batu 3 dan kawasan sekitar yang merangkumi naik taraf ruang solat serta \nmemperbaiki kerosakan, selain dari inisiatif untuk meningkatkan kelestarian Sungai Semenyih yang \nmerentasi Kampung Batu 3, menerusi penanaman lebih 300 biji benih pokok buluh dan 2,000 benih \nrumput vetiver. Bagi merapatkan silaturahim, pada bulan September yang lepas, MITI telah \nmenganjurkan sambutan Hari Malaysia di persekitaran Kampung Batu 3 yang turut dimeriahkan oleh \npenduduk Kampung Batu 3 dan sekitar dengan pelbagai pengisian program  termasuk perarakan\npenduduk dan warga MITI bagi menyemarakkan semangat patriotisme. Program gotong-royong turut \ndiadakan melibatkan warga MITI dan kampung pada bulan Mei yang lalu"
+QUERY_TEXT = "eksport semikonduktor mewakili lebih kurang 30% dari jumlah eksport Malaysia"
 TOP_K = 3
 
 client = QdrantClient(url=QDRANT_URL, api_key=API_KEY)

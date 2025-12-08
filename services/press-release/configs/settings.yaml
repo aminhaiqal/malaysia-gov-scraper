@@ -30,11 +30,11 @@ scrapers:
     module: src.scrapers.miti
     class: MITIScraper
     start_urls:
-      - "https://www.miti.gov.my/miti/resources/Media%20Release/PR_Kampung_Angkat_MADANI_MITI_Batu_3_Semenyih.pdf"
+      - "https://www.miti.gov.my/miti/resources/Media%20Release/BELANJAWAN_2026_MITI_Penerusan_Transformasi_Industri_bagi_Kelangsungan_Industri-PKS-Rakyat_2025-10-11.pdf"
     selectors:
       listing_links: "a"
       
-      
+
   - name: bnm
     module: src.scrapers.bnm
     start_urls:
