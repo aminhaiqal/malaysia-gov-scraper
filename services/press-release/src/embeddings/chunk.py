@@ -26,7 +26,7 @@ def chunk_text(
         chunk = text[start:end].strip()
         if chunk:
             chunks.append(chunk)
-        start += chunk_size - overlap  # move start forward with overlap
+        start += chunk_size - overlap
 
     return chunks
 

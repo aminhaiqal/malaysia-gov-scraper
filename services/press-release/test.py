@@ -1,61 +1,39 @@
-from qdrant_client import QdrantClient, models
-import numpy as np
+from qdrant_client import QdrantClient
 from src.embeddings.embedder import embed_text
 
-# -------------------------------
-# CONFIG
-# -------------------------------
 QDRANT_URL = "http://localhost:6333"
 API_KEY = "qdrjYgmlPGcjGgybJmEPEJvFOoQ9hdkjDcP"
 COLLECTION_NAME = "gov_docs"
-QUERY_TEXT = "Transformasi Semikonduktor"
+QUERY_TEXT = "Masjid Kariah Batu 3 dan kawasan sekitar yang merangkumi naik taraf ruang solat serta \nmemperbaiki kerosakan, selain dari inisiatif untuk meningkatkan kelestarian Sungai Semenyih yang \nmerentasi Kampung Batu 3, menerusi penanaman lebih 300 biji benih pokok buluh dan 2,000 benih \nrumput vetiver. Bagi merapatkan silaturahim, pada bulan September yang lepas, MITI telah \nmenganjurkan sambutan Hari Malaysia di persekitaran Kampung Batu 3 yang turut dimeriahkan oleh \npenduduk Kampung Batu 3 dan sekitar dengan pelbagai pengisian program  termasuk perarakan\npenduduk dan warga MITI bagi menyemarakkan semangat patriotisme. Program gotong-royong turut \ndiadakan melibatkan warga MITI dan kampung pada bulan Mei yang lalu"
 TOP_K = 3
 
-# -------------------------------
-# INIT CLIENT
-# -------------------------------
 client = QdrantClient(url=QDRANT_URL, api_key=API_KEY)
-client.get_collection(collection_name=COLLECTION_NAME)  # assert exists
+client.get_collection(collection_name=COLLECTION_NAME)
 
-# -------------------------------
-# Embed the query
-# -------------------------------
-query_result = embed_text(QUERY_TEXT)
-
-# unify/flatten → ALWAYS return a SINGLE vector
-if isinstance(query_result, dict):
-    query_vector = np.array(query_result["embedding"], dtype=np.float32)
-elif isinstance(query_result, list):
-    vectors = [np.array(x["embedding"], dtype=np.float32) for x in query_result]
-    query_vector = np.mean(vectors, axis=0)  # avg merge chunks
+# Embed query → should return list of floats
+query_vector = embed_text(QUERY_TEXT)
+if isinstance(query_vector, dict):
+    query_vector = query_vector["embedding"]
+elif isinstance(query_vector, list) and isinstance(query_vector[0], dict):
+    # chunked embeddings → mean pool
+    vectors = [x["embedding"] for x in query_vector]
+    import numpy as np
+    query_vector = np.mean(vectors, axis=0).tolist()
+elif isinstance(query_vector, list) and isinstance(query_vector[0], (float, int)):
+    # already single vector
+    pass
 else:
-    raise ValueError("Invalid embed_text output format")
+    raise ValueError("embed_text returned unsupported format")
 
-# ensure list for Qdrant
-query_vector = query_vector.tolist()
-
-# -------------------------------
-# Nearest Neighbors Search
-# -------------------------------
-hits = client.query(
+# Semantic search
+hits = client.query_points(
     collection_name=COLLECTION_NAME,
-    query_vector=query_vector,
+    query=query_vector,
     limit=TOP_K,
-    search_params=models.SearchParams(
-        hnsw_ef=128  # improves recall quality
-    )
 ).points
 
-# -------------------------------
-# Display results
-# -------------------------------
-print(f"\nTop {TOP_K} results for query: '{QUERY_TEXT}':\n")
-for i, hit in enumerate(hits, start=1):
-    payload = hit.payload
-    score = hit.score
-    text = payload.get("chunk_text", "") or ""
-    print(f"{i}. Score: {score:.4f}")
-    print(f"   URL: {payload.get('url')}")
-    print(f"   Title: {payload.get('title')}")
-    print(f"   Chunk: {text[:150]}{'...' if len(text) > 150 else ''}")
-    print("-" * 60)
+# Display
+for i, hit in enumerate(hits, 1):
+    print(f"{i}. Score: {hit.score}")
+    print("Payload:", hit.payload)
+    print("-" * 50)

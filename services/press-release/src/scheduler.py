@@ -5,6 +5,7 @@ from .core.publisher import QdrantPublisher
 from .core.models import Article
 from .core.storage import DocumentStore
 from .core.pdf_processor import PDFProcessor
+from .scrapers.strategies.factory import ScrapeStrategyFactory
 from typing import List
 
 
@@ -52,35 +53,58 @@ def run_all(target: str = None):
                 print('Scraper error:', e)
 
 def run_scraper(scraper, index_url: str, embed: bool = True, save: bool = False) -> List[Article]:
-    """Run a single scraper and publish chunks to Qdrant"""
-    html = fetch(index_url)
-    links = scraper.list_links(html)
-    seen = set()
-    buffer = []
+    """
+    Run a scraper on a given index URL, extract articles, and optionally save or embed them.
+
+    Args:
+        scraper: HTML scraper object with `get_article(raw_html, url)` method.
+        index_url: The starting page or PDF URL to scrape.
+        embed: Whether to embed articles to Qdrant.
+        save: Whether to save articles to the database.
+
+    Returns:
+        List[Article]: All scraped articles.
+    """
+
+    buffer: List[Article] = []
     published_count = 0
     stored_count = 0
 
-    def process_batch(batch):
+    def process_batch(batch: List[Article]):
+        """Save and/or publish a batch of articles."""
         nonlocal published_count, stored_count
-
         if not batch:
             return
 
         if save:
-            # Store into DB first then store_articles returns only unique/new ones
             new_docs = STORE.save_articles(batch)
             stored_count += len(new_docs)
-
             if embed and new_docs:
                 PUBLISHER.publish(new_docs)
                 published_count += len(new_docs)
         else:
-            # No DB filtering then publish all scraped docs
             if embed:
                 PUBLISHER.publish(batch)
                 published_count += len(batch)
 
         batch.clear()
+
+    if index_url.lower().endswith(".pdf"):
+        strategy = ScrapeStrategyFactory.get_strategy(index_url, scraper)
+        try:
+            article = strategy.process(index_url)
+            if article:
+                buffer.append(article)
+                process_batch(buffer)
+        except Exception as e:
+            print("PDF processing failed:", index_url, e)
+
+        print(f"[Scraper] Stored: {stored_count}, Published: {published_count}")
+        return buffer
+
+    html = fetch(index_url)
+    links = scraper.list_links(html)
+    seen = set()
 
     for link in links:
         if link in seen:
@@ -88,28 +112,21 @@ def run_scraper(scraper, index_url: str, embed: bool = True, save: bool = False)
         seen.add(link)
 
         # Skip index/anchor links
-        if (link.endswith("#")
-            or link.rstrip("/").endswith("press-release")
-            or link.rstrip("/").endswith("Media%20Release")):
+        if link.endswith("#") or link.rstrip("/").endswith(("press-release", "Media%20Release")):
             continue
 
         try:
-            if link.lower().endswith(".pdf"):
-                article_data = PROCESSOR.process_pdf_from_url(link)
-                
-            else:
-                raw = fetch(link)
-                article_data = scraper.get_article(raw, link)
-
-            buffer.append(article_data)
-
-            if len(buffer) >= 20:
-                process_batch(buffer)
+            strategy = ScrapeStrategyFactory.get_strategy(link, scraper)
+            article = strategy.process(link)
+            if article:
+                buffer.append(article)
+                if len(buffer) >= 20:
+                    process_batch(buffer)
 
         except Exception as e:
             print("Article error:", link, e)
 
+    # Process remaining articles in buffer
     process_batch(buffer)
-
     print(f"[Scraper] Stored: {stored_count}, Published: {published_count}")
     return buffer

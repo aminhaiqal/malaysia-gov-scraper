@@ -2,7 +2,8 @@ import uuid
 from qdrant_client import QdrantClient, models
 from typing import Optional
 from .models import Article
-from src.embeddings.embedder import embed_text, get_embedding_dimension
+from src.embeddings.embedder import get_embedding_dimension
+from src.embeddings.chunk import embed_chunks
 
 
 class QdrantPublisher:
@@ -23,12 +24,11 @@ class QdrantPublisher:
         points = []
 
         for doc in docs:
-            embedded = embed_text(doc.cleaned_text or doc.text)
+            full_text = doc.cleaned_text or doc.text
 
-            if isinstance(embedded, dict):
-                embedded = [embedded]
+            embedded_chunks = embed_chunks(full_text)
 
-            for chunk in embedded:
+            for chunk in embedded_chunks:
                 points.append(
                     models.PointStruct(
                         id=str(uuid.uuid4()),
@@ -41,7 +41,8 @@ class QdrantPublisher:
                 )
 
 
-        self.client.upload_points(
-            collection_name=self.collection,
-            points=points
-        )
+        if points:
+            self.client.upload_points(
+                collection_name=self.collection,
+                points=points
+            )

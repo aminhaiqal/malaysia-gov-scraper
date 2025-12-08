@@ -35,6 +35,9 @@ def expand_paginated_urls(meta):
     urls = []
 
     for base_url in start_urls:
+        if base_url.lower().endswith(".pdf"):
+            urls.append(base_url)
+            continue
         urls.append(base_url)
 
         if pagination and pagination.get("type") == "query_param":
